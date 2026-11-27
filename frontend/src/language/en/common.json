@@ -1,0 +1,17 @@
+{
+  "siteName": "Acme Store",
+  "navigation": {
+    "products": "Products",
+    "blog": "Blog",
+    "cart": "Cart",
+    "account": "Account"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "search": "Search",
+    "login": "Login",
+    "logout": "Logout"
+  }
+}

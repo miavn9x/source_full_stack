@@ -1,0 +1,17 @@
+# Global default
+*                       @core-team
+
+# Application Layer
+/src/app/admin/         @team-admin
+/src/app/(site)/        @team-storefront
+/src/app/api/           @team-backend-gateway
+
+# Feature Domains
+/src/features/admin/    @team-admin
+/src/features/auth/     @team-auth
+/src/features/client/   @team-storefront
+/src/features/user/     @team-account
+
+# Shared Kernel & Platform Integrations
+/src/platform/plasmic/  @team-platform
+/src/shared/            @core-team

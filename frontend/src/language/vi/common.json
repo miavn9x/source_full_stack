@@ -1,0 +1,17 @@
+{
+  "siteName": "Acme Store",
+  "navigation": {
+    "products": "Sản phẩm",
+    "blog": "Blog",
+    "cart": "Giỏ hàng",
+    "account": "Tài khoản"
+  },
+  "actions": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "search": "Tìm kiếm",
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất"
+  }
+}

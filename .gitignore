@@ -1,0 +1,105 @@
+# Dependencies
+**/node_modules/
+**/.pnp
+**/.pnp.*
+**/yarn/*
+**/!.yarn/patches
+**/!.yarn/plugins
+**/!.yarn/releases
+**/!.yarn/versions
+package-lock.json
+
+# Build
+**/.next/
+**/out/
+**/build
+**/dist/
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Env files
+**/.env
+**/.env.*
+!.env.example
+backend/ENV_VPS.md
+backend/ENV_DEV.md
+frontend/ENV_VPS.md
+frontend/ENV_DEV.md
+
+# Runtime & Cache
+**/.npm/
+**/.cache/
+**/.tmp
+**/.temp
+frontend/performance-test/
+
+# Uploads & Assets
+backend/uploads/
+**/coverage
+
+# Logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.pnpm-debug.log*
+
+# IDEs
+**/.vscode/*
+**/!.vscode/settings.json
+**/.idea/
+**/.suo
+**/.ntvs*
+**/.njsproj
+**/.sln
+
+# Operating Systems
+.DS_Store
+**/.DS_Store
+**/.AppleDouble
+**/.LSOverride
+**/Icon?
+**/._*
+**/.Spotlight-V100
+**/.Trashes
+**/__MACOSX/
+**/Thumbs.db
+**/ehthumbs.db
+**/Desktop.ini
+**/$RECYCLE.BIN/
+
+# Cloud / DevOps / Docker
+**/.vercel
+**/render.yaml
+**/render.yml
+**/nestity.json
+**/nestity.config.js
+**/Dockerfile
+**/docker-compose.yml
+**/docker-compose.*.yml
+**/.dockerignore
+**/docker/
+
+# Database
+**/dump.rdb
+**/*.sqlite
+**/*.sqlite3
+**/pgdata/
+**/mongodb/
+**/pgadmin/
+**/*.pgsql
+**/mysql/
+**/mysqldump.sql
+**/*.sql
+
+# Security & Audit
+**/*.pem
+google-tokens.json
+full_security_audit.js
+frontend_security_audit.js
+
+# Large Files (>100MB) - Prevent GitHub rejection
+**/*.mp4
+**/*.psd
+**/*.zip
+**/*.rar
