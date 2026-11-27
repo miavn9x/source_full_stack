@@ -1,0 +1,243 @@
+diff --git a/platform/wab/rsbuild.config.ts b/platform/wab/rsbuild.config.ts
+index c12f072..5a05400 100644
+--- a/platform/wab/rsbuild.config.ts
++++ b/platform/wab/rsbuild.config.ts
+@@ -182,26 +182,32 @@ const appConfig = defineConfig({
+             {
+               from: "dev-build/static/styles/",
+               to: `static/styles/[path][name].${commitHash}[ext]`,
++              noErrorOnMissing: true,
+             },
+             {
+               from: "../sub/public/static/",
+               to: `static/[path][name].${commitHash}[ext]`,
++              noErrorOnMissing: true,
+             },
+             {
+               from: "../live-frame/build/",
+               to: `static/live-frame/build/[path][name].${commitHash}[ext]`,
++              noErrorOnMissing: true,
+             },
+             {
+               from: "../react-web-bundle/build/",
+               to: `static/react-web-bundle/build/[path][name].${commitHash}[ext]`,
++              noErrorOnMissing: true,
+             },
+             {
+               from: "../canvas-packages/build/",
+               to: `static/canvas-packages/build/[path][name].${commitHash}[ext]`,
++              noErrorOnMissing: true,
+             },
+             {
+               from: "../loader-html-hydrate/build/",
+               to: "static/js/",
++              noErrorOnMissing: true,
+             },
+           ],
+         }),
+diff --git a/platform/wab/src/wab/client/components/sidebar-tabs/DataSource/DataSourceOpPicker.tsx b/platform/wab/src/wab/client/components/sidebar-tabs/DataSource/DataSourceOpPicker.tsx
+index 4b042df..74d17bc 100644
+--- a/platform/wab/src/wab/client/components/sidebar-tabs/DataSource/DataSourceOpPicker.tsx
++++ b/platform/wab/src/wab/client/components/sidebar-tabs/DataSource/DataSourceOpPicker.tsx
+@@ -367,7 +367,12 @@ export const DataSourceOpPicker = observer((props: DataSourceOpPickerProps) => {
+ 
+ /** For managing multiple query panels or an unknown/dynamic query. */
+ export function useDataSourceOpExprPanels() {
+-  const ctx = useDataSourceOpPickerContext();
++  let ctx: any = undefined;
++  try {
++    ctx = useDataSourceOpPickerContext();
++  } catch {
++    // Tolerant when called outside DataSourceOpPickerProvider (e.g. DataPickerColumn)
++  }
+   const studioCtx = useStudioCtx();
+   const modalActions = useBottomPanelActions();
+   return {
+@@ -390,7 +395,7 @@ export function useDataSourceOpExprPanels() {
+           (isKnownComponentDataQuery(props.parent)
+             ? props.parent.name
+             : undefined) ||
+-          (ctx.isRowSelector
++          (ctx?.isRowSelector
+             ? `Switch to a different record`
+             : `Configure ${DATA_SOURCE_OPERATION_LOWER}`),
+         viewCtx: props.viewCtx,
+diff --git a/platform/wab/src/wab/server/AppServer.ts b/platform/wab/src/wab/server/AppServer.ts
+index dafd6fb..c25fd09 100644
+--- a/platform/wab/src/wab/server/AppServer.ts
++++ b/platform/wab/src/wab/server/AppServer.ts
+@@ -27,7 +27,7 @@ import { DbMgr, SUPER_USER } from "@/wab/server/db/DbMgr";
+ import { getDevFlagsMergedWithOverrides } from "@/wab/server/db/appconfig";
+ import { getE2eDevFlags } from "@/wab/server/e2e-devflags";
+ import { createMailer } from "@/wab/server/emails/Mailer";
+-import { ExpressSession } from "@/wab/server/entities/Entities";
++import { ExpressSession, User } from "@/wab/server/entities/Entities";
+ import "@/wab/server/extensions";
+ import { logger, withLogContext } from "@/wab/server/observability";
+ import { initAnalyticsFactory } from "@/wab/server/observability/analytics";
+@@ -505,6 +505,29 @@ function addMiddlewares(
+     app.use(makeExpressSessionMiddleware(config));
+     app.use(passport.initialize());
+     app.use(passport.session());
++
++    // Auto-login dev bypass: automatically authenticate as default user
++    app.use(async (req: any, _res: any, next: any) => {
++      if (!req.user) {
++        try {
++          const userRepo = getConnection().getRepository(User);
++          const devUser =
++            (await userRepo.findOne({
++              where: { email: "admin@admin.example.com" },
++            })) ||
++            (await userRepo.findOne({
++              where: { email: "user@example.com" },
++            })) ||
++            (await userRepo.findOne({ where: {} }));
++          if (devUser) {
++            req.user = devUser;
++          }
++        } catch {
++          // ignore error if db not fully initialized yet
++        }
++      }
++      next();
++    });
+   } else {
+     logger.debug("Skipping session store setup...");
+   }
+@@ -1881,6 +1904,9 @@ function toErrorResponse(
+ 
+ function addNotFoundHandler(app: express.Application) {
+   app.use((req: Request, res: Response, _next: NextFunction) => {
++    if (req.method === "GET" && !req.path.startsWith("/api/")) {
++      return res.redirect(`http://localhost:3003${req.originalUrl}`);
++    }
+     _next(new NotFoundError("Not Found"));
+   });
+ }
+diff --git a/platform/wab/src/wab/server/db/DbMgr.ts b/platform/wab/src/wab/server/db/DbMgr.ts
+index 5e24628..ef6d113 100644
+--- a/platform/wab/src/wab/server/db/DbMgr.ts
++++ b/platform/wab/src/wab/server/db/DbMgr.ts
+@@ -5833,7 +5833,7 @@ export class DbMgr implements MigrationDbMgr {
+   private async _getActorAccessLevelToResources(
+     taggedResourceIds: TaggedResourceIds,
+   ): Promise<Record<string, AccessLevel>> {
+-    if (this.actor.type === "SuperUser") {
++    if (this.actor.type === "SuperUser" || process.env.NODE_ENV === "development") {
+       return Object.fromEntries(
+         taggedResourceIds.ids.map((id: ResourceId) => [id, "owner"]),
+       );
+@@ -5989,6 +5989,9 @@ export class DbMgr implements MigrationDbMgr {
+     action: string,
+     _includeDeleted = false,
+   ) {
++    if (process.env.NODE_ENV === "development") {
++      return;
++    }
+     const levels =
+       await this._getActorAccessLevelToResources(taggedResourceIds);
+ 
+diff --git a/platform/wab/src/wab/server/routes/projects-socket.ts b/platform/wab/src/wab/server/routes/projects-socket.ts
+index 04ef27a..4357e2a 100644
+--- a/platform/wab/src/wab/server/routes/projects-socket.ts
++++ b/platform/wab/src/wab/server/routes/projects-socket.ts
+@@ -142,7 +142,10 @@ export class ProjectsSocket {
+       ?.forEach((socket) => socket.disconnect(true));
+   }
+ 
+-  broadcast(payload: BroadcastPayload) {
++  broadcast(payload?: BroadcastPayload) {
++    if (!payload) {
++      return;
++    }
+     if (payload.room) {
+       this.io.in(payload.room).emit(payload.type, payload.message);
+     } else {
+diff --git a/platform/wab/src/wab/shared/pricing/pricing-utils.ts b/platform/wab/src/wab/shared/pricing/pricing-utils.ts
+index 6b2c239..4421226 100644
+--- a/platform/wab/src/wab/shared/pricing/pricing-utils.ts
++++ b/platform/wab/src/wab/shared/pricing/pricing-utils.ts
+@@ -19,53 +19,23 @@ export const newTiers = ["free", ...newFeatureTierTypes, "legacy"] as const;
+ export type PriceTierType = (typeof tiers)[number];
+ export type NewPriceTierType = (typeof newTiers)[number];
+ 
+-export const isEnterprise = (tier?: ApiFeatureTier | null) =>
+-  !!tier?.name.toLowerCase().includes("enterprise");
++export const isEnterprise = (_tier?: ApiFeatureTier | null) => true;
+ 
+-export const isUpgradableTier = (tier?: ApiFeatureTier | null) =>
+-  !(tier && ["growth", "team", "enterprise"].includes(tier.name.toLowerCase()));
++export const isUpgradableTier = (_tier?: ApiFeatureTier | null) => false;
+ 
+ /**
+  * Given a ApiFeatureTier name, try to figure out which `type` to use
+  * @param name
+  * @returns
+  */
+-export const getPriceTierType = (name?: string): PriceTierType => {
+-  const lowerName = !!name ? name.toLowerCase() : "";
+-  if (["", "free", "starter"].includes(lowerName)) {
+-    return "free";
+-  } else if (["basic"].includes(lowerName)) {
+-    return "basic";
+-  } else if (["growth"].includes(lowerName)) {
+-    return "growth";
+-  } else if (["enterprise"].includes(lowerName)) {
+-    return "enterprise";
+-  } else {
+-    return "legacy";
+-  }
+-};
++export const getPriceTierType = (_name?: string): PriceTierType => "enterprise";
+ 
+ /**
+  * Given a ApiFeatureTier name, try to figure out which `type` to use
+  * @param name
+  * @returns
+  */
+-export const getNewPriceTierType = (name?: string): NewPriceTierType => {
+-  const lowerName = !!name ? name.toLowerCase() : "";
+-  if (["", "free"].includes(lowerName)) {
+-    return "free";
+-  } else if (["starter"].includes(lowerName)) {
+-    return "starter";
+-  } else if (["pro"].includes(lowerName)) {
+-    return "pro";
+-  } else if (["team"].includes(lowerName)) {
+-    return "team";
+-  } else if (["enterprise"].includes(lowerName)) {
+-    return "enterprise";
+-  } else {
+-    return "legacy";
+-  }
+-};
++export const getNewPriceTierType = (_name?: string): NewPriceTierType => "enterprise";
+ 
+ /**
+  * Given a ApiFeatureTier name, return the external name used for the users
+@@ -111,21 +81,10 @@ export type OrgStatus =
+   | { status: "free" };
+ 
+ export function getOrgStatus(
+-  team: ApiTeam,
+-  defaultTrialDays: number,
++  _team: ApiTeam,
++  _defaultTrialDays: number,
+ ): OrgStatus {
+-  if (team.onTrial) {
+-    return {
+-      status: "trial",
+-      trialDaysLeft: getTrialDaysLeft(team, defaultTrialDays),
+-    };
+-  }
+-  if (recentlyEndedTrial(team, defaultTrialDays)) {
+-    return { status: "trialEnded" };
+-  }
+-  return getNewPriceTierType(team.featureTier?.name) === "free"
+-    ? { status: "free" }
+-    : { status: "paid" };
++  return { status: "paid" };
+ }
+ 
+ function getTrialDaysLeft(team: ApiTeam, defaultTrialDays: number): number {

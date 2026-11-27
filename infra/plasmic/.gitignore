@@ -4,3 +4,6 @@
 data/
 repo/
 *.log
+
+# Full Plasmic source clone (multi-GB)
+plasmic-studio-src/

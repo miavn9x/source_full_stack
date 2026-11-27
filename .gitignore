@@ -1,6 +1,5 @@
 # Dependencies
 **/node_modules/
-**/infra/
 **/.pnp
 **/.pnp.*
 **/yarn/*
@@ -9,6 +8,9 @@
 **/!.yarn/releases
 **/!.yarn/versions
 package-lock.json
+
+# Self-hosted Plasmic source (multi-GB, cloned on demand)
+infra/plasmic/plasmic-studio-src/
 
 # Build
 **/.next/
@@ -78,6 +80,7 @@ backend/uploads/
 **/Dockerfile
 **/docker-compose.yml
 **/docker-compose.*.yml
+!infra/plasmic/docker-compose.yml
 **/.dockerignore
 **/docker/
 
@@ -92,6 +95,7 @@ backend/uploads/
 **/mysql/
 **/mysqldump.sql
 **/*.sql
+!infra/plasmic/*.sql
 
 # Security & Audit
 **/*.pem

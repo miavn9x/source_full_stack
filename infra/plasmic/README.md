@@ -2,6 +2,8 @@
 
 Hướng dẫn tải và chạy **Plasmic Studio trực tiếp từ toàn bộ mã nguồn chính thức** tại GitHub [`plasmicapp/plasmic`](https://github.com/plasmicapp/plasmic), **chạy 100% trên máy của bạn (Native Windows), không Docker, không phụ thuộc vào bất kỳ Cloud bên thứ 3 nào**.
 
+> **Lưu ý:** Thư mục `plasmic-studio-src/` (~4.6 GB) **không được đưa lên git**. Các chỉnh sửa local được lưu dưới dạng patch tại `local-patches/` — xem `local-patches/README.md` để biết cách khôi phục sau khi clone lại.
+
 ---
 
 ## 1. Vì sao thư mục `infra/plasmic` ban đầu chỉ có vài file?
